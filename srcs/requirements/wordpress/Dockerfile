@@ -1,36 +1,43 @@
-FROM alpine:3.19.4
+FROM alpine:3.19
 
-RUN apk update && apk upgrade && \
-	apk add --no-cache php8.4 php8.4-fpm \
-	php8.4-cli php8.4-json php8.4-mysqli \
-	php8.4-curl php8.4-gd php8.4-xml php8.4-zip \
-	mariadb-client sendmail wget tar
+ARG PHP_VERSION=82 \
+    DB_NAME \
+    DB_USER \
+    DB_PASS
 
-COPY conf/php-fpm.conf /etc/php8.4/php-fpm.conf
-COPY ./conf/www.conf /etc/php8.4/php-fpm.d/www.conf
+RUN apk update && apk upgrade && apk add --no-cache \
+    php${PHP_VERSION} \
+    php${PHP_VERSION}-fpm \
+    php${PHP_VERSION}-mysqli \
+    php${PHP_VERSION}-json \
+    php${PHP_VERSION}-curl \
+    php${PHP_VERSION}-dom \
+    php${PHP_VERSION}-exif \
+    php${PHP_VERSION}-fileinfo \
+    php${PHP_VERSION}-mbstring \
+    php${PHP_VERSION}-openssl \
+    php${PHP_VERSION}-xml \
+    php${PHP_VERSION}-zip \
+    php${PHP_VERSION}-redis \
+    wget \
+    unzip && \
+    sed -i "s|listen = 127.0.0.1:9000|listen = 9000|g" \
+      /etc/php${PHP_VERSION}/php-fpm.d/www.conf && \
+    sed -i "s|;listen.owner = nobody|listen.owner = nobody|g" \
+      /etc/php${PHP_VERSION}/php-fpm.d/www.conf && \
+    sed -i "s|;listen.group = nobody|listen.group = nobody|g" \
+      /etc/php${PHP_VERSION}/php-fpm.d/www.conf && \
+    rm -f /var/cache/apk/*
 
-COPY conf/index.html /tmp/index.html
+WORKDIR /var/www
 
-RUN wget https://wordpress.org/wordpress-6.6.2.tar.gz -P /var/www
+RUN wget https://wordpress.org/latest.zip && \
+    unzip latest.zip && \
+    cp -rf wordpress/* . && \
+    rm -rf wordpress latest.zip
 
-RUN mkdir -p /var/www/html
+COPY ./requirements/wordpress/conf/wp-config-create.sh .
+RUN sh wp-config-create.sh && rm wp-config-create.sh && \
+    chmod -R 0777 wp-content/
 
-WORKDIR /var/www/html
-
-RUN chown -R www-data:www-data /var/www/html
-
-RUN tar -xzvf wordpress-6.6.2.tar.gz && \
-	rm -rf wordpress-6.6.2.tar.gz
-
-RUN wget --no-check-certificate https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
-
-RUN chmod +x wp-cli.phar && \
-	mv wp-cli.phar /usr/local/bin/wp
-
-EXPOSE 9000
-
-COPY ./tools/auto_config.sh /usr/local/bin/auto_config.sh
-RUN chmod +x /usr/local/bin/auto_config.sh
-
-ENTRYPOINT ["/usr/local/bin/auto_config.sh"]
-CMD ["php-fpm8.4", "-F", "-R"]
+CMD ["/usr/sbin/php-fpm82", "-F"]
