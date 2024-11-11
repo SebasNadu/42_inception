@@ -2,11 +2,11 @@ FROM alpine:3.19
 
 RUN	apk update && apk upgrade && apk add --no-cache nodejs npm
 
-RUN mkdir -p /home/app
+RUN	mkdir -p /home/app
 
-COPY ./tools /home/app
+COPY	./requirements/bonus/website/tools /home/app
 
-WORKDIR /home/app
+WORKDIR	/home/app
 
 RUN npm init -y && npm install express -y
 

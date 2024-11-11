@@ -96,7 +96,7 @@ services:
   website:
     build:
       context: .
-      dockerfile: ./requirements/bonus/websites/Dockerfile
+      dockerfile: ./requirements/bonus/website/Dockerfile
     container_name: website
     ports:
       - "3000:3000"
